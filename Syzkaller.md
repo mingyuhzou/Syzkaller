@@ -41,13 +41,30 @@ my_struct {
 
 + field0一个用于写入的常量
 + field1 可被修改的整数值
-+ field2 一个子u议案类型作为输出字段
++ field2 输出字段
 
 结构体作为参数使用**指针**传递
 
 ```python
 some_syscall(arg ptr[inout, my_struct])
 ```
+
+
+
+union表示**多选一**的字段结构，如果没有条件判断，**默认**的就是**随机选择**，字段之间不需要加**逗号**。
+
+```python
+command {
+  cmd_id int32
+  payload [
+    foo int32 (if[value[cmd_id] == 1])
+    bar array[int8, 4] (if[value[cmd_id] == 2])
+    baz int64
+  ] [varlen]
+} [packed]
+```
+
+
 
 
 
@@ -72,10 +89,10 @@ type buffer[DIR] ptr[DIR, array[int8]]
 syscallname(arg1 type1,arg2 type2) return_type (attr1,attr2)
 ```
 
-+ syscallname：系统调用名
-+ arg，type：参数名称与类型
-+ return_type：返回值类型
-+ attri：控制调用行为的属性
++ **syscallname：系统调用名**
++ **arg，type：参数名称与类型**
++ **return_type：返回值类型**
++ **attri：控制调用行为的属性**
 
 
 
@@ -99,8 +116,8 @@ ssize_t write(int fd, const void *buf, size_t count);
 
 | 属性名            | 含义                                                         |
 | ----------------- | ------------------------------------------------------------ |
-| `disabled`        | 禁用该 syscall，不生成测试用例（但保留定义）                 |
-| `timeout[N]`      | 增加该 syscall 的单独执行超时时间（毫秒）                    |
+| `disabled`        | **禁用**该 syscall，不生成测试用例（但保留定义）             |
+| `timeout[N]`      | **增加**该 syscall 的**单独执行超时时间**（毫秒）            |
 | `prog_timeout[N]` | 如果程序包含此 syscall，整个程序的执行时间将增加 N 毫秒      |
 | `ignore_return`   | 忽略该 syscall 的返回值，不用它参与反馈机制（常用于时间、随机数等） |
 | `breaks_returns`  | 执行此调用后，**忽略所有后续调用的返回值**（返回值不可被信任） |
@@ -128,4 +145,32 @@ mount(src ptr[in, string], ...) int32 (timeout[5000])
 
 
 ## 条件字段
+
+```python
+field type (if[value[路径] == 常量])
+```
+
+其中**value[X]**表示取字段的值，判断条件用**()**包裹，if的条件用**[]**包裹
+
+
+
+条件字段还包括**嵌套引用**，即
+
+```python
+packet {
+  header header_struct
+  data   array[int8] (if[value[header:has_data] == 1])
+}
+
+header_struct {
+  magic     const[0x1234, int16]
+  has_data  int8
+} [packed]
+```
+
+表示访问header字段下的has_data字段
+
+在结构体末尾添加**[packed]**，表示结构体是可变的
+
+
 
